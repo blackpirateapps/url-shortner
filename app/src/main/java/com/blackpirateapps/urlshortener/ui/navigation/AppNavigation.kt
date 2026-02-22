@@ -9,6 +9,7 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,6 +19,7 @@ import com.blackpirateapps.urlshortener.ui.components.CupertinoBottomNavBar
 import com.blackpirateapps.urlshortener.ui.components.TabItem
 import com.blackpirateapps.urlshortener.ui.screens.HistoryScreen
 import com.blackpirateapps.urlshortener.ui.screens.HomeScreen
+import com.blackpirateapps.urlshortener.ui.screens.LinkDetailsScreen
 import com.blackpirateapps.urlshortener.ui.screens.SettingsScreen
 import com.blackpirateapps.urlshortener.viewmodel.UrlViewModel
 
@@ -25,6 +27,8 @@ import com.blackpirateapps.urlshortener.viewmodel.UrlViewModel
 fun AppNavigation(
     viewModel: UrlViewModel
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     val tabs = remember {
         listOf(
             TabItem("Home", Icons.Outlined.Home, "home"),
@@ -34,6 +38,16 @@ fun AppNavigation(
     }
 
     var selectedRoute by remember { mutableStateOf("home") }
+
+    // Show link details screen as an overlay when a link is selected
+    if (uiState.selectedLink != null) {
+        LinkDetailsScreen(
+            link = uiState.selectedLink!!,
+            viewModel = viewModel,
+            onBack = { viewModel.clearSelectedLink() }
+        )
+        return
+    }
 
     Scaffold(
         bottomBar = {

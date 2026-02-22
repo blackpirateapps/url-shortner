@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.blackpirateapps.urlshortener.data.ApiService
+import com.blackpirateapps.urlshortener.data.ClickAnalytics
 import com.blackpirateapps.urlshortener.data.PreferencesManager
 import com.blackpirateapps.urlshortener.data.ShortenedUrl
 import com.blackpirateapps.urlshortener.data.UrlShortenerRepository
@@ -28,7 +29,10 @@ data class UrlUiState(
     val apiBaseUrl: String = "",
     val apiPassword: String = "",
     val isConfigured: Boolean = false,
-    val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_CONFIGURED
+    val connectionStatus: ConnectionStatus = ConnectionStatus.NOT_CONFIGURED,
+    val selectedLink: ShortenedUrl? = null,
+    val linkAnalytics: List<ClickAnalytics> = emptyList(),
+    val isLoadingDetails: Boolean = false
 )
 
 enum class ConnectionStatus {
@@ -283,5 +287,40 @@ class UrlViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearResult() {
         _uiState.value = _uiState.value.copy(shortenedResult = null)
+    }
+
+    fun selectLinkForDetails(link: ShortenedUrl) {
+        _uiState.value = _uiState.value.copy(
+            selectedLink = link,
+            linkAnalytics = emptyList()
+        )
+    }
+
+    fun clearSelectedLink() {
+        _uiState.value = _uiState.value.copy(
+            selectedLink = null,
+            linkAnalytics = emptyList()
+        )
+    }
+
+    fun fetchLinkDetails(slug: String) {
+        val state = _uiState.value
+        if (!state.isConfigured) return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingDetails = true)
+
+            repository.getLinkDetails(state.apiBaseUrl, state.apiPassword, slug).fold(
+                onSuccess = { clicks ->
+                    _uiState.value = _uiState.value.copy(
+                        linkAnalytics = clicks,
+                        isLoadingDetails = false
+                    )
+                },
+                onFailure = {
+                    _uiState.value = _uiState.value.copy(isLoadingDetails = false)
+                }
+            )
+        }
     }
 }

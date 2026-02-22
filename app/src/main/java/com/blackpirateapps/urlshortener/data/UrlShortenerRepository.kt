@@ -59,6 +59,10 @@ class UrlShortenerRepository(private val apiService: ApiService) {
         return apiService.testConnection(baseUrl, password)
     }
 
+    suspend fun getLinkDetails(baseUrl: String, password: String, slug: String): Result<List<com.blackpirateapps.urlshortener.data.ClickAnalytics>> {
+        return apiService.getLinkDetails(baseUrl, password, slug)
+    }
+
     private fun parseTimestamp(isoString: String): Long {
         return try {
             java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)

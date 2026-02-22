@@ -224,7 +224,7 @@ fun SettingsScreen(
 
         CupertinoCard {
             Column {
-                SettingsInfoRow(title = "Version", subtitle = "1.0.0")
+                SettingsInfoRow(title = "Version", subtitle = "1.1.0")
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
                     modifier = Modifier.padding(start = 16.dp)

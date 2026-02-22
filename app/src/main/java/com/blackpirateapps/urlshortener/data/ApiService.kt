@@ -123,6 +123,39 @@ class ApiService {
     }
 
     /**
+     * GET /api/link-details?slug=...
+     */
+    suspend fun getLinkDetails(baseUrl: String, password: String, slug: String): Result<List<ClickAnalytics>> = apiCall {
+        val url = baseUrl.trimEnd('/') + "/api/link-details?slug=$slug"
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $password")
+            .addHeader("Content-Type", "application/json")
+            .get()
+            .build()
+
+        val response = client.newCall(request).execute()
+        val responseBody = response.body?.string() ?: ""
+
+        if (!response.isSuccessful) {
+            val error = try { JSONObject(responseBody).optString("error", "Request failed") } catch (_: Exception) { "Request failed (${response.code})" }
+            throw ApiException(response.code, error)
+        }
+
+        val obj = JSONObject(responseBody)
+        val clicksArray = obj.optJSONArray("clicks") ?: JSONArray()
+        (0 until clicksArray.length()).map { i ->
+            val click = clicksArray.getJSONObject(i)
+            ClickAnalytics(
+                clickedAt = click.optString("clicked_at", ""),
+                userAgent = click.optString("user_agent", ""),
+                referrer = click.optString("referrer", ""),
+                ipAddress = click.optString("ip_address", "")
+            )
+        }
+    }
+
+    /**
      * Test connection by attempting to fetch domains
      */
     suspend fun testConnection(baseUrl: String, password: String): Result<Boolean> = apiCall {
@@ -159,6 +192,13 @@ data class LinkItem(
     val hasPassword: Boolean,
     val clickCount: Int,
     val createdAt: String
+)
+
+data class ClickAnalytics(
+    val clickedAt: String,
+    val userAgent: String,
+    val referrer: String,
+    val ipAddress: String
 )
 
 class ApiException(val code: Int, message: String) : Exception(message)
