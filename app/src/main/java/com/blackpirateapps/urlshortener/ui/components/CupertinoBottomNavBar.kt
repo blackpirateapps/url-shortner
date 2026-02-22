@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +43,7 @@ fun CupertinoBottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.94f))
+            .navigationBarsPadding()
     ) {
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
@@ -52,9 +52,7 @@ fun CupertinoBottomNavBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(49.dp)
-                .navigationBarsPadding()
-                .padding(horizontal = 8.dp),
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {

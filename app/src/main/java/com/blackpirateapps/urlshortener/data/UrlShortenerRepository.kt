@@ -1,53 +1,71 @@
 package com.blackpirateapps.urlshortener.data
 
-import kotlinx.coroutines.delay
-
 data class ShortenedUrl(
     val id: String,
+    val slug: String,
     val originalUrl: String,
     val shortUrl: String,
+    val hostname: String = "",
+    val clickCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
 
-class UrlShortenerRepository {
+class UrlShortenerRepository(private val apiService: ApiService) {
 
-    private val history = mutableListOf<ShortenedUrl>()
-    private var counter = 0
-
-    /**
-     * Stub implementation — returns a mock shortened URL.
-     * Replace this with actual API call when backend is ready.
-     */
-    suspend fun shortenUrl(url: String): Result<ShortenedUrl> {
-        return try {
-            // Simulate network delay
-            delay(800)
-
-            counter++
-            val shortened = ShortenedUrl(
-                id = counter.toString(),
+    suspend fun shortenUrl(
+        baseUrl: String,
+        password: String,
+        url: String,
+        hostname: String
+    ): Result<ShortenedUrl> {
+        val result = apiService.shortenUrl(baseUrl, password, url, hostname)
+        return result.map { shortUrl ->
+            ShortenedUrl(
+                id = shortUrl,
+                slug = shortUrl.substringAfterLast("/"),
                 originalUrl = url,
-                shortUrl = "https://bprt.link/${generateShortCode()}"
+                shortUrl = shortUrl,
+                hostname = hostname
             )
-            history.add(0, shortened)
-            Result.success(shortened)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
-    fun getHistory(): List<ShortenedUrl> = history.toList()
-
-    fun deleteFromHistory(id: String) {
-        history.removeAll { it.id == id }
+    suspend fun getLinks(baseUrl: String, password: String): Result<List<ShortenedUrl>> {
+        val result = apiService.getLinks(baseUrl, password)
+        return result.map { links ->
+            links.map { link ->
+                ShortenedUrl(
+                    id = link.slug,
+                    slug = link.slug,
+                    originalUrl = link.url,
+                    shortUrl = "https://${link.hostname}/${link.slug}",
+                    hostname = link.hostname,
+                    clickCount = link.clickCount,
+                    createdAt = parseTimestamp(link.createdAt)
+                )
+            }
+        }
     }
 
-    fun clearHistory() {
-        history.clear()
+    suspend fun deleteLink(baseUrl: String, password: String, slug: String): Result<Unit> {
+        return apiService.deleteLink(baseUrl, password, slug)
     }
 
-    private fun generateShortCode(): String {
-        val chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return (1..6).map { chars.random() }.joinToString("")
+    suspend fun getDomains(baseUrl: String, password: String): Result<List<String>> {
+        return apiService.getDomains(baseUrl, password)
+    }
+
+    suspend fun testConnection(baseUrl: String, password: String): Result<Boolean> {
+        return apiService.testConnection(baseUrl, password)
+    }
+
+    private fun parseTimestamp(isoString: String): Long {
+        return try {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                .parse(isoString)?.time ?: System.currentTimeMillis()
+        } catch (_: Exception) {
+            System.currentTimeMillis()
+        }
     }
 }

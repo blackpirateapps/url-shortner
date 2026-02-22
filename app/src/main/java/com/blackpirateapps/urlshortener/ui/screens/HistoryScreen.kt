@@ -6,7 +6,6 @@ import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,7 +39,6 @@ import com.blackpirateapps.urlshortener.viewmodel.UrlViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 
 @Composable
 fun HistoryScreen(
@@ -77,16 +75,28 @@ fun HistoryScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "URLs you shorten will appear here",
+                    text = if (uiState.isConfigured) "URLs you shorten will appear here"
+                           else "Configure your API in Settings first",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                 )
+                if (uiState.isConfigured) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = { viewModel.fetchLinks() }) {
+                        Text(
+                            text = "Refresh",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // Clear all button
+                // Header with count and actions
                 item {
                     Row(
                         modifier = Modifier
@@ -100,13 +110,23 @@ fun HistoryScreen(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
-                        TextButton(onClick = { viewModel.clearHistory() }) {
-                            Text(
-                                text = "Clear All",
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium
-                            )
+                        Row {
+                            TextButton(onClick = { viewModel.fetchLinks() }) {
+                                Text(
+                                    text = "Refresh",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            TextButton(onClick = { viewModel.clearHistory() }) {
+                                Text(
+                                    text = "Clear All",
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
                         }
                     }
                 }
@@ -139,11 +159,20 @@ fun HistoryScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = formatDate(item.createdAt),
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
-                                        )
+                                        Row {
+                                            Text(
+                                                text = formatDate(item.createdAt),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                            )
+                                            if (item.clickCount > 0) {
+                                                Text(
+                                                    text = " · ${item.clickCount} click${if (item.clickCount != 1) "s" else ""}",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                                )
+                                            }
+                                        }
                                     }
                                     IconButton(onClick = {
                                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -159,7 +188,7 @@ fun HistoryScreen(
                                         )
                                     }
                                     IconButton(onClick = {
-                                        viewModel.deleteFromHistory(item.id)
+                                        viewModel.deleteFromHistory(item.slug)
                                     }) {
                                         Icon(
                                             Icons.Outlined.Delete,

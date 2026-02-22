@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,7 +26,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +38,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,6 +74,43 @@ fun HomeScreen(
                 CupertinoNavigationBar(title = "Shorten URL")
             }
 
+            // Not configured warning
+            if (!uiState.isConfigured) {
+                item {
+                    CupertinoCard(
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Outlined.Warning,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Not Configured",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                                Text(
+                                    text = "Set your API URL and password in Settings",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // URL Input Section
             item {
                 Column(
@@ -77,6 +121,48 @@ fun HomeScreen(
                         onValueChange = { viewModel.updateInputUrl(it) },
                         placeholder = "Enter URL to shorten..."
                     )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Hostname field with dropdown
+                    Box {
+                        var expanded by remember { mutableStateOf(false) }
+
+                        CupertinoTextField(
+                            value = uiState.hostname,
+                            onValueChange = { viewModel.updateHostname(it) },
+                            placeholder = "Hostname (e.g. short.example.com)"
+                        )
+
+                        // Show domain suggestions dropdown on click
+                        if (uiState.domains.isNotEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .matchParentSize()
+                                    .clickable { expanded = true }
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier.fillMaxWidth(0.9f)
+                            ) {
+                                uiState.domains.forEach { domain ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = domain,
+                                                style = MaterialTheme.typography.bodyLarge
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.updateHostname(domain)
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
 
                     // Error message
                     AnimatedVisibility(visible = uiState.error != null) {
@@ -216,13 +302,23 @@ fun HomeScreen(
                                             color = MaterialTheme.colorScheme.primary,
                                             fontWeight = FontWeight.Medium
                                         )
-                                        Text(
-                                            text = item.originalUrl,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
+                                        Row {
+                                            Text(
+                                                text = item.originalUrl,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f, fill = false)
+                                            )
+                                            if (item.clickCount > 0) {
+                                                Text(
+                                                    text = " · ${item.clickCount} clicks",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                                )
+                                            }
+                                        }
                                     }
                                     IconButton(onClick = {
                                         copyToClipboard(context, item.shortUrl)
@@ -263,7 +359,8 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Paste a URL above to shorten it",
+                            text = if (uiState.isConfigured) "Paste a URL above to shorten it"
+                                   else "Configure your API in Settings to get started",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
