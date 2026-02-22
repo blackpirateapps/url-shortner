@@ -124,6 +124,7 @@ class ApiService {
 
     /**
      * GET /api/link-details?slug=...
+     * Response is a raw JSON array of click events
      */
     suspend fun getLinkDetails(baseUrl: String, password: String, slug: String): Result<List<ClickAnalytics>> = apiCall {
         val url = baseUrl.trimEnd('/') + "/api/link-details?slug=$slug"
@@ -135,19 +136,19 @@ class ApiService {
             .build()
 
         val response = client.newCall(request).execute()
-        val responseBody = response.body?.string() ?: ""
+        val responseBody = response.body?.string() ?: "[]"
 
         if (!response.isSuccessful) {
             val error = try { JSONObject(responseBody).optString("error", "Request failed") } catch (_: Exception) { "Request failed (${response.code})" }
             throw ApiException(response.code, error)
         }
 
-        val obj = JSONObject(responseBody)
-        val clicksArray = obj.optJSONArray("clicks") ?: JSONArray()
+        val clicksArray = JSONArray(responseBody)
         (0 until clicksArray.length()).map { i ->
             val click = clicksArray.getJSONObject(i)
             ClickAnalytics(
-                clickedAt = click.optString("clicked_at", ""),
+                slug = click.optString("link_slug", slug),
+                clickedAt = click.getString("clicked_at"),
                 userAgent = click.optString("user_agent", ""),
                 referrer = click.optString("referrer", ""),
                 ipAddress = click.optString("ip_address", "")
@@ -195,6 +196,7 @@ data class LinkItem(
 )
 
 data class ClickAnalytics(
+    val slug: String,
     val clickedAt: String,
     val userAgent: String,
     val referrer: String,

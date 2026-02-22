@@ -1,5 +1,6 @@
 package com.blackpirateapps.urlshortener.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,7 @@ fun AppNavigation(
 
     // Show link details screen as an overlay when a link is selected
     if (uiState.selectedLink != null) {
+        BackHandler { viewModel.clearSelectedLink() }
         LinkDetailsScreen(
             link = uiState.selectedLink!!,
             viewModel = viewModel,
